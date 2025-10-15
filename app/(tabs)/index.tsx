@@ -1,32 +1,37 @@
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  ScrollView,
-  Image,
-  FlatList,
-} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
-import useFetch from "@/services/usefetch";
 import { fetchMovies } from "@/services/api";
-import { getTrendingMovies } from "@/services/appwrite";
+import useFetch from "@/services/usefetch";
 
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 
-import SearchBar from "@/components/SearchBar";
 import MovieCard from "@/components/MovieCard";
-import TrendingCard from "@/components/TrendingCard";
+import SearchBar from "@/components/SearchBar";
 
 const Index = () => {
   const router = useRouter();
+  const [username, setUsername] = useState<string>("");
 
-  const {
-    data: trendingMovies,
-    loading: trendingLoading,
-    error: trendingError,
-  } = useFetch(getTrendingMovies);
+  // Load username from AsyncStorage
+  useEffect(() => {
+    const loadUsername = async () => {
+      const storedUsername = await AsyncStorage.getItem("username");
+      if (storedUsername) setUsername(storedUsername);
+    };
+    loadUsername();
+  }, []);
+
 
   const {
     data: movies,
@@ -47,16 +52,25 @@ const Index = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ minHeight: "100%", paddingBottom: 10 }}
       >
-        <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
+        <Image source={icons.logo} className="w-12 h-10 mt-20 mx-auto mb-2" />
 
-        {moviesLoading || trendingLoading ? (
+        {/* Elegant greeting */}
+        {username ? (
+          <Text className="text-2xl text-white font-semibold text-center mb-5">
+            Hi, <Text className="text-accent">{username}</Text>
+          </Text>
+        ) : null}
+
+        {moviesLoading ? (
           <ActivityIndicator
             size="large"
-            color="#0000ff"
+            color="#AB8BFF"
             className="mt-10 self-center"
           />
-        ) : moviesError || trendingError ? (
-          <Text>Error: {moviesError?.message || trendingError?.message}</Text>
+        ) : moviesError ? (
+          <Text className="text-white text-center mt-10">
+            Error: {moviesError?.message}
+          </Text>
         ) : (
           <View className="flex-1 mt-5">
             <SearchBar
@@ -66,7 +80,8 @@ const Index = () => {
               placeholder="Search for a movie"
             />
 
-            {trendingMovies && (
+            {/* Uncomment trending section if needed */}
+            {/* {trendingMovies && (
               <View className="mt-10">
                 <Text className="text-lg text-white font-bold mb-3">
                   Trending Movies
@@ -86,7 +101,7 @@ const Index = () => {
                   ItemSeparatorComponent={() => <View className="w-4" />}
                 />
               </View>
-            )}
+            )} */}
 
             <>
               <Text className="text-lg text-white font-bold mt-5 mb-3">
