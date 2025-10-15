@@ -9,9 +9,20 @@ import useFetch from "@/services/usefetch";
 
 import MovieDisplayCard from "@/components/MovieCard";
 import SearchBar from "@/components/SearchBar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [username, setUsername] = useState<string>("");
+
+  // Load username from AsyncStorage
+  useEffect(() => {
+    const loadUsername = async () => {
+      const storedUsername = await AsyncStorage.getItem("username");
+      if (storedUsername) setUsername(storedUsername);
+    };
+    loadUsername();
+  }, []);
 
   const {
     data: movies = [],
@@ -30,7 +41,6 @@ const Search = () => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
         await loadMovies();
-
       } else {
         reset();
       }
@@ -61,10 +71,19 @@ const Search = () => {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <>
-            <View className="w-full flex-row justify-center mt-20 items-center">
+            {/* Greeting */}
+            {username ? (
+              <Text className="text-2xl text-white font-semibold text-center mt-20 mb-2">
+                Hi, <Text className="text-accent">{username}</Text>
+              </Text>
+            ) : null}
+
+            {/* Logo */}
+            <View className="w-full flex-row justify-center items-center">
               <Image source={icons.logo} className="w-12 h-10" />
             </View>
 
+            {/* Search Bar */}
             <View className="my-5">
               <SearchBar
                 placeholder="Search for a movie"
@@ -73,29 +92,23 @@ const Search = () => {
               />
             </View>
 
+            {/* Loading & Error */}
             {loading && (
-              <ActivityIndicator
-                size="large"
-                color="#0000ff"
-                className="my-3"
-              />
+              <ActivityIndicator size="large" color="#AB8BFF" className="my-3" />
             )}
-
             {error && (
               <Text className="text-red-500 px-5 my-3">
                 Error: {error.message}
               </Text>
             )}
 
-            {!loading &&
-              !error &&
-              searchQuery.trim() &&
-              movies?.length! > 0 && (
-                <Text className="text-xl text-white font-bold">
-                  Search Results for{" "}
-                  <Text className="text-accent">{searchQuery}</Text>
-                </Text>
-              )}
+            {/* Search results title */}
+            {!loading && !error && searchQuery.trim() && movies?.length! > 0 && (
+              <Text className="text-xl text-white font-bold">
+                Search Results for{" "}
+                <Text className="text-accent">{searchQuery}</Text>
+              </Text>
+            )}
           </>
         }
         ListEmptyComponent={
