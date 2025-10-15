@@ -4,7 +4,8 @@ import { images } from "@/constants/images";
 import { tablesDB } from "@/lib/appwrite";
 import { fetchMovieDetails } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -23,53 +24,53 @@ const Save = () => {
   const [loading, setLoading] = useState(true);
   const [savedMovies, setSavedMovies] = useState<any[]>([]);
 
-  useEffect(() => {
-    const loadSavedMovies = async () => {
-      try {
-        const userId = await AsyncStorage.getItem("userId");
-        if (!userId) throw new Error("User not found");
+  const loadSavedMovies = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) throw new Error("User not found");
 
-        // Fetch user data from Appwrite
-        const res = await tablesDB.listRows({
-          databaseId: DATABASE_ID,
-          tableId: "users",
-          queries: [Query.equal("userId", userId)],
-        });
+      const res = await tablesDB.listRows({
+        databaseId: DATABASE_ID,
+        tableId: "users",
+        queries: [Query.equal("userId", userId)],
+      });
 
-        const user = res.rows[0];
-        if (!user) throw new Error("User not found in database");
+      const user = res.rows[0];
+      if (!user) throw new Error("User not found in database");
 
-        setUsername(user.username || "User");
+      setUsername(user.username || "User");
 
-        const movieIds: string[] = user.movieIds || [];
-        if (movieIds.length === 0) {
-          setSavedMovies([]);
-          return;
-        }
-
-        // Fetch movie details from TMDB
-        const moviesData = await Promise.all(
-          movieIds.map(async (id) => {
-            try {
-              const data = await fetchMovieDetails(id);
-              return data;
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        // Filter out nulls (failed fetches)
-        setSavedMovies(moviesData.filter(Boolean));
-      } catch (err) {
-        console.error("Error loading saved movies:", err);
-      } finally {
-        setLoading(false);
+      const movieIds: string[] = user.movieIds || [];
+      if (movieIds.length === 0) {
+        setSavedMovies([]);
+        return;
       }
-    };
 
-    loadSavedMovies();
+      const moviesData = await Promise.all(
+        movieIds.map(async (id) => {
+          try {
+            return await fetchMovieDetails(id);
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      setSavedMovies(moviesData.filter(Boolean));
+    } catch (err) {
+      console.error("Error loading saved movies:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // 👇 Run every time the tab/page is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadSavedMovies();
+    }, [loadSavedMovies])
+  );
 
   if (loading) {
     return (
